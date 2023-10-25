@@ -1,0 +1,33 @@
+{
+  "name": "@openremote/or-icon",
+  "version": "1.1.0",
+  "description": "Icon component for displaying an icon from an icon set",
+  "main": "dist/umd/index.bundle.js",
+  "module": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./*": "./lib/*.js"
+  },
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "copyMdiFont": "node mdi-font-copy.js",
+    "build": "npx tsc -b",
+    "test": "echo \"No tests\" && exit 0",
+    "prepublishOnly": "npx webpack"
+  },
+  "author": "OpenRemote",
+  "license": "AGPL-3.0-or-later",
+  "dependencies": {
+    "lit": "^2.0.2"
+  },
+  "devDependencies": {
+    "@mdi/font": "latest",
+    "terser-webpack-plugin": "^5.2.5",
+    "typescript": ">=4.5.2",
+    "webpack": "^5.76.0",
+    "webpack-cli": "^4.9.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

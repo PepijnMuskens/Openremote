@@ -1,0 +1,137 @@
+import java.nio.file.Paths
+
+apply plugin: "java-library"
+apply plugin: "application"
+apply plugin: "distribution"
+apply plugin: "maven-publish"
+apply plugin: "signing"
+
+mainClassName = "org.openremote.manager.Main"
+
+dependencies {
+
+    api resolveProject(":container")
+    api resolveProject(":agent")
+    api resolveProject(":model")
+
+    implementation "org.xerial:sqlite-jdbc:$sqliteVersion"
+
+    api "org.mnode.ical4j:ical4j:$ical4jVersion"
+
+    implementation "org.geotools:gt-main:$geotoolsVersion"
+    implementation "com.google.firebase:firebase-admin:$firebaseAdminVersion"
+    implementation "org.eclipse.angus:angus-mail:$jakartaMailVersion"
+    implementation "io.swagger.core.v3:swagger-jaxrs2-jakarta:$swaggerVersion"
+    implementation "org.openjdk.nashorn:nashorn-core:$nashornVersion"
+    implementation "org.apache.camel:camel-undertow:$camelVersion"
+
+    implementation ("io.netty:netty-codec-http:$nettyVersion") {
+        force = true
+    }
+
+    // Exposed via MQTT API
+    api ("io.netty:netty-codec-mqtt:$nettyVersion") {
+        force = true
+    }
+
+    implementation("org.apache.activemq:artemis-mqtt-protocol:$activeMQVersion") {
+        exclude group: "org.osgi"
+        exclude group: "org.jboss.logmanager"
+    }
+
+    // Needed for reference in tests
+    api("org.apache.activemq:artemis-server:$activeMQVersion") {
+        exclude group: "org.osgi"
+        exclude group: "org.jboss.logmanager"
+    }
+
+    implementation("org.quartz-scheduler:quartz:$quartzVersion") {
+        exclude group: "c3p0"
+    }
+
+    implementation "org.shredzone.commons:commons-suncalc:$suncalcVersion"
+    implementation "org.slf4j:slf4j-api:$slf4jVersion"
+    implementation "io.prometheus:simpleclient_httpserver:$prometheusVersion"
+}
+
+jar {
+    archivesBaseName = "openremote-${project.name}"
+}
+
+afterEvaluate {
+    // Change the working directory for the run task
+    tasks.run.workingDir = isCustomProject() ? project(":openremote").projectDir : rootProject.projectDir
+}
+
+distributions {
+    main {
+        contents {
+            from(project.projectDir) {
+                include("*Dockerfile")
+            }
+            into ("web") {
+                from("${rootDir}/LICENSE.txt")
+            }
+            into ("web") {
+                from("${projectDir}/src/web")
+            }
+            into ("map") {
+                from("${projectDir}/src/map")
+            }
+        }
+    }
+}
+
+javadoc {
+    failOnError = false
+}
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            group = "io.openremote"
+            artifactId = "openremote-${project.name}"
+            from components.java
+            pom {
+                name = 'OpenRemote Manager'
+                description = 'Provides core container services and is the main component of the OpenRemote backend; add maven {url "https://repo.osgeo.org/repository/release/"} and maven {url "https://pkgs.dev.azure.com/OpenRemote/OpenRemote/_packaging/OpenRemote/maven/v1"} to resolve all dependencies'
+                url = 'https://github.com/openremote/openremote'
+                licenses {
+                    license {
+                        name = 'GNU Affero General Public License v3.0'
+                        url = 'https://www.gnu.org/licenses/agpl-3.0.en.html'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'developers'
+                        name = 'Developers'
+                        email = 'developers@openremote.io'
+                        organization = 'OpenRemote'
+                        organizationUrl = 'https://openremote.io'
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = 'myRepo'
+            url = layout.buildDirectory.dir("repo")
+        }
+    }
+}
+
+// Output version.properties file
+task setVersionProperties(type: WriteProperties) {
+    outputFile =  Paths.get(projectDir.path, "src", "main", "resources", "version.properties").toFile()
+    property 'version', project.version
+}
+publish.mustRunAfter(setVersionProperties)
+publish.dependsOn(setVersionProperties)
